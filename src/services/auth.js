@@ -1,8 +1,13 @@
 import API from "./api.js";
 
+const AUTH_PATH = "/api/v1/auth";
+
 const ROLES = {
-  2: "domiciliario",
+  1: "superadmin",
+  2: "administrador",
   3: "panadero",
+  4: "domiciliario",
+  5: "cliente",
 };
 
 export const registrarUsuario = async ({ nombre, email, password }) => {
@@ -14,57 +19,115 @@ export const registrarUsuario = async ({ nombre, email, password }) => {
     password,
     telefono: "3000000000",
     estado: "Activo",
-    Rol_idRol: 1,
+    Rol_idRol: 5,
     cliente_idCliente: 2,
     panadero_idPanadero: null,
     domiciliario_idDomiciliario: null,
   };
 
-  const { data } = await API.post("/register", nuevoUsuario);
+  const { data } = await API.post(`${AUTH_PATH}/register`, nuevoUsuario);
   return data;
 };
 
-export function obtenerUsuarioActual() {
-  try {
-    const usuario = JSON.parse(localStorage.getItem("usuario"));
+export function obtenerSesionActual({ sincronizar = false } = {}) {
+  if (!sincronizar) {
+    try {
+      const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+      if (!usuario) return null;
 
-    return usuario || null;
-  } catch {
-    return null;
+      const nombreCompleto = [usuario.nombre, usuario.apellido]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      return {
+        ...usuario,
+        nombreCompleto: nombreCompleto || usuario.correo || "Administrador",
+      };
+    } catch {
+      return null;
+    }
   }
-}
 
-export function obtenerNombreUsuarioActual() {
-  const usuario = obtenerUsuarioActual();
+  return API.get(`${AUTH_PATH}/me`).then(({ data }) => {
+    const usuario = data.user ?? data.usuario ?? data.data?.user ?? data.data ?? data;
+    const rolId =
+      usuario.Rol_idRol ?? usuario.rol_id ?? usuario.role_id ?? usuario.rolId;
+    const rolNombre =
+      usuario.rol?.nombre ??
+      usuario.rol?.name ??
+      usuario.role?.name ??
+      usuario.rol ??
+      usuario.role ??
+      "";
+    const nombre = usuario.nombre ?? usuario.name ?? usuario.nombre_completo ?? usuario.full_name ?? "";
+    const apellido = usuario.apellido ?? usuario.last_name ?? usuario.lastname ?? "";
+    const correo = usuario.correo || usuario.email;
+    const usuarioActual = {
+      ...usuario,
+      nombre,
+      apellido,
+      correo,
+      nombreCompleto: [nombre, apellido].filter(Boolean).join(" ").trim() || correo || "Administrador",
+      rol: ROLES[Number(rolId)] ?? String(rolNombre).toLowerCase(),
+    };
 
-  if (!usuario) return "Administrador";
+    localStorage.setItem("usuario", JSON.stringify(usuarioActual));
+    window.dispatchEvent(new Event("usuarioActualizado"));
 
-  const nombreCompleto = [usuario.nombre, usuario.apellido]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-
-  return nombreCompleto || usuario.correo || "Administrador";
+    return usuarioActual;
+  });
 }
 
 export async function iniciarSesion(email, password) {
   let respuesta;
 
   try {
-    respuesta = await API.post("/login", { email, password });
+    respuesta = await API.post(`${AUTH_PATH}/login`, { email, password });
   } catch (error) {
-    if (error.response?.status === 400) return null;
+    const status = error.response?.status;
+    if (status === 400 || status === 401 || status === 403) return null;
     throw error;
   }
 
-  const usuario = respuesta.data.user;
+  const payload = respuesta.data ?? {};
+  const usuario = payload.user ?? payload.usuario ?? payload.data?.user ?? payload.data ?? {};
 
-  return {
+  if (!usuario || typeof usuario !== "object") return null;
+
+  const token =
+    payload.accessToken ??
+    payload.access_token ??
+    payload.token ??
+    payload.data?.accessToken ??
+    payload.data?.access_token ??
+    usuario.token;
+
+  const usuarioTemporal = {
     ...usuario,
+    nombre: usuario.nombre ?? usuario.name ?? usuario.nombre_completo ?? usuario.full_name ?? "",
+    apellido: usuario.apellido ?? usuario.last_name ?? usuario.lastname ?? "",
     correo: usuario.correo || usuario.email,
-    rol: ROLES[usuario.Rol_idRol] ?? "cliente",
-    token: respuesta.data.accessToken,
+    token,
   };
+
+  localStorage.setItem("usuario", JSON.stringify(usuarioTemporal));
+
+  try {
+    const usuarioSesion = await obtenerSesionActual({ sincronizar: true });
+    return { ...usuarioSesion, token };
+  } catch (error) {
+    localStorage.removeItem("usuario");
+    throw error;
+  }
+}
+
+export async function cerrarSesion() {
+  try {
+    await API.post(`${AUTH_PATH}/logout`);
+  } finally {
+    localStorage.removeItem("usuario");
+  }
 }
 
 export async function recuperarPassword(correo) {

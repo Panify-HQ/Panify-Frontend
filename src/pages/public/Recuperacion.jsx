@@ -40,7 +40,7 @@ export default function Recuperacion() {
       Swal.fire({
         icon: "error",
         title: "Error de conexión",
-        text: "No se pudo conectar con el servidor (puerto 1511).",
+        text: "No se pudo conectar con el servidor (puerto 8000).",
         confirmButtonColor: "#e5a93c",
       });
     }

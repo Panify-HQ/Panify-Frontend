@@ -1,5 +1,5 @@
 import API from "./api";
-import { obtenerUsuarioActual } from "./auth.js";
+import { obtenerSesionActual } from "./auth";
 
 export async function obtenerUsuarios() {
   const res = await API.get("/users");
@@ -7,7 +7,7 @@ export async function obtenerUsuarios() {
 }
 
 export async function crearUsuario(datosUsuario) {
-  const res = await API.post("/register", datosUsuario);
+  const res = await API.post("/api/v1/auth/register", datosUsuario);
   return res.data;
 }
 
@@ -22,46 +22,30 @@ export async function actualizarUsuario(id, datosActualizados) {
 
 // Obtener la información del perfil privado del usuario logueado
 export async function obtenerPerfilUsuario(userId = null) {
-  const usuarioLogueado = obtenerUsuarioActual();
+  const usuario = await obtenerSesionActual({ sincronizar: true });
   const clienteIdActual = Number(
-    userId ?? usuarioLogueado?.cliente_idCliente ?? usuarioLogueado?.idCliente ?? usuarioLogueado?.id ?? 1
+    userId ?? usuario.cliente_idCliente ?? usuario.idCliente ?? usuario.id ?? 1
   );
-
-  const [usuarios, clientes, pedidos] = await Promise.all([
-    API.get(`/users?cliente_idCliente=${clienteIdActual}`),
-    API.get("/clientes"),
-    API.get(`/pedidos?cliente_idCliente=${clienteIdActual}`),
-  ]);
-
-  const usuario = usuarios.data[0] || null;
-
-  if (!usuario) {
-    throw new Error("Usuario no encontrado");
-  }
-
-  const cliente = clientes.data.find(
-    (item) => Number(item.idCliente ?? item.id) === Number(clienteIdActual)
-  ) || null;
-
-  const email = usuario.correo || cliente?.email || usuario.email || "";
-  const direccion = cliente?.direccion || usuario.direccion || "No registrada";
-  const ciudad = cliente?.ciudad || usuario.ciudad || "Soacha";
-
-  const iniciales = `${(usuario.nombre || "U")[0]}${(usuario.apellido || "")[0] || ""}`.toUpperCase();
+  const nombre = usuario.nombre || "";
+  const apellido = usuario.apellido || "";
+  const email = usuario.correo || usuario.email || "";
+  const direccion = usuario.direccion || "No registrada";
+  const ciudad = usuario.ciudad || "Soacha";
+  const iniciales = `${(nombre || "U")[0]}${(apellido || "")[0] || ""}`.toUpperCase();
 
   return {
     id: clienteIdActual,
     clienteId: clienteIdActual,
     usuarioId: usuario.idUsuario ?? usuario.id,
-    nombre: usuario.nombre || "",
-    apellido: usuario.apellido || "",
+    nombre,
+    apellido,
     email,
-    telefono: usuario.telefono || cliente?.telefono || "",
+    telefono: usuario.telefono || "",
     direccion,
     ciudad,
-    avatarUrl: usuario.avatarUrl || cliente?.avatarUrl || null,
+    avatarUrl: usuario.avatarUrl || usuario.avatar || null,
     iniciales,
-    totalPedidosRealizados: pedidos.data ? pedidos.data.length : 0,
+    totalPedidosRealizados: usuario.totalPedidosRealizados ?? 0,
   };
 }
 

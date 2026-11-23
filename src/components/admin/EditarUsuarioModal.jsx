@@ -3,9 +3,11 @@ import { useEffect, useState } from "react";
 import Modal from "./Modal.jsx";
 
 const ROLES = [
-  { id: 1, nombre: "Cliente" },
-  { id: 2, nombre: "Domiciliario" },
+  { id: 1, nombre: "Superadmin" },
+  { id: 2, nombre: "Administrador" },
   { id: 3, nombre: "Panadero" },
+  { id: 4, nombre: "Domiciliario" },
+  { id: 5, nombre: "Cliente" },
 ];
 
 const estadoInicial = (usuario) => ({
@@ -13,7 +15,7 @@ const estadoInicial = (usuario) => ({
   apellido: usuario?.apellido ?? "",
   correo: usuario?.correo ?? usuario?.email ?? "",
   telefono: usuario?.telefono ?? "",
-  Rol_idRol: Number(usuario?.Rol_idRol) || 1,
+  Rol_idRol: Number(usuario?.Rol_idRol) || 5,
   estado: usuario?.estado ?? "Activo",
   password: "",
 });

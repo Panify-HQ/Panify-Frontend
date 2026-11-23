@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import useModal from "../../hooks/useModal.js";
 import EditarUsuarioModal from "../../components/admin/EditarUsuarioModal.jsx";
 import Swal from "sweetalert2";
-import { obtenerNombreUsuarioActual } from "../../services/auth.js";
+import { obtenerSesionActual } from "../../services/auth.js";
 import DataTable from "datatables.net-react";
 import DT from "datatables.net-bs5";
 import "datatables.net-bs5/css/dataTables.bootstrap5.min.css";
@@ -30,7 +30,7 @@ export default function Users() {
       title: "Rol",
       data: "Rol_idRol",
       render: (data) =>
-        `<span class="badge ${data === 2 ? "bg-primary" : data === 3 ? "bg-danger" : "bg-secondary"}">${nombreRol(data)}</span>`,
+        `<span class="badge ${data === 1 ? "bg-dark" : data === 2 ? "bg-danger" : data === 3 ? "bg-primary" : "bg-secondary"}">${nombreRol(data)}</span>`,
     },
     {
       title: "Acciones",
@@ -54,9 +54,11 @@ export default function Users() {
 
   function nombreRol(id) {
     const roles = {
-      1: "Cliente",
-      2: "Domiciliario",
+      1: "Superadmin",
+      2: "Administrador",
       3: "Panadero",
+      4: "Domiciliario",
+      5: "Cliente",
     };
 
     return roles[id] || "Desconocido";
@@ -160,7 +162,7 @@ export default function Users() {
 
           <div className="admin-info d-flex align-items-center gap-2">
             <i className="fa-solid fa-circle-user fs-4"></i>
-            <span>{obtenerNombreUsuarioActual()}</span>
+            <span>{obtenerSesionActual()?.nombreCompleto || "Administrador"}</span>
           </div>
         </header>
 

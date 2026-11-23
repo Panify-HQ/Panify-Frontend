@@ -4,7 +4,7 @@ import "datatables.net-bs5/css/dataTables.bootstrap5.min.css";
 import { obtenerRecibos } from "../../services/recibos.js";
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import { obtenerNombreUsuarioActual } from "../../services/auth.js";
+import { obtenerSesionActual } from "../../services/auth.js";
 import { formatearFechaHora } from "../../utils/formatearFechaHora.js";
 import { formatearMoneda } from "../../utils/formatearMoneda.js";
 import ModalDetalleRecibo from "../../components/admin/ModalDetalleRecibos.jsx";
@@ -94,7 +94,7 @@ export default function recibos() {
 
         <div className="admin-info">
           <i className="fa-solid fa-circle-user"></i>
-          <span>{obtenerNombreUsuarioActual()}</span>
+          <span>{obtenerSesionActual()?.nombreCompleto || "Administrador"}</span>
         </div>
       </header>
 

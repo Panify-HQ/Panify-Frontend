@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { obtenerUsuarioActual } from "../../services/auth.js";
+import { cerrarSesion, obtenerSesionActual } from "../../services/auth.js";
 import { formatearMoneda } from "../../utils/formatearMoneda.js";
 import logoPanify from "../../assets/img/Logo Panify.png";
 
@@ -17,21 +17,21 @@ function obtenerCarritoGuardado() {
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [usuario, setUsuario] = useState(obtenerUsuarioActual);
+  const [usuario, setUsuario] = useState(obtenerSesionActual);
   const [menuPerfilAbierto, setMenuPerfilAbierto] = useState(false);
   const [menuMovilAbierto, setMenuMovilAbierto] = useState(false);
   const [carrito, setCarrito] = useState(obtenerCarritoGuardado);
   const [carritoAbierto, setCarritoAbierto] = useState(false);
 
   useEffect(() => {
-    setUsuario(obtenerUsuarioActual());
+    setUsuario(obtenerSesionActual());
     setMenuPerfilAbierto(false);
     setMenuMovilAbierto(false);
     setCarritoAbierto(false);
   }, [location]);
 
   useEffect(() => {
-    const actualizarUsuario = () => setUsuario(obtenerUsuarioActual());
+    const actualizarUsuario = () => setUsuario(obtenerSesionActual());
     const actualizarCarrito = () => setCarrito(obtenerCarritoGuardado());
 
     window.addEventListener("storage", actualizarUsuario);
@@ -52,8 +52,14 @@ export default function Navbar() {
   const iniciales = nombreUsuario.charAt(0).toUpperCase();
   const fotoPerfil = usuario?.fotoPerfil || usuario?.foto || usuario?.avatar;
 
-  const cerrarSesion = () => {
-    localStorage.removeItem("usuario");
+  const handleCerrarSesion = async () => {
+    try {
+      await cerrarSesion();
+    } catch (error) {
+      console.error("Error al cerrar sesion en el servidor:", error);
+      localStorage.removeItem("usuario");
+    }
+
     localStorage.removeItem("carrito");
     setUsuario(null);
     setMenuPerfilAbierto(false);
@@ -186,7 +192,7 @@ export default function Navbar() {
                           <i className="fa-solid fa-user-gear"></i>
                           Perfil
                         </Link>
-                        <button className="profile-menu-link profile-logout" onClick={cerrarSesion}>
+                        <button className="profile-menu-link profile-logout" onClick={handleCerrarSesion}>
                           <i className="fa-solid fa-right-from-bracket"></i>
                           Cerrar sesión
                         </button>

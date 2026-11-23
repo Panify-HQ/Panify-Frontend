@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { obtenerNombreUsuarioActual } from "../../services/auth";
+import { obtenerSesionActual } from "../../services/auth";
 import {obtenerPedidosAdmin, actualizarEstadoPedido} from "../../services/pedidos.js";
 import Swal from "sweetalert2";
 import DataTable from "datatables.net-react";
@@ -269,7 +269,7 @@ export default function Pedidos() {
             <i className="fa-solid fa-circle-user"></i>
 
             <span>
-              {obtenerNombreUsuarioActual()}
+              {obtenerSesionActual()?.nombreCompleto || "Administrador"}
             </span>
           </div>
 

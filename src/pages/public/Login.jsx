@@ -55,13 +55,26 @@ export default function Login() {
         showConfirmButton: false,
       });
 
-      navigate(usuario.rol === "cliente" ? "/cliente/inicio" : "/admin/usuarios");
+      const rolesAdministrativos = [
+        "superadmin",
+        "administrador",
+        "panadero",
+        "domiciliario",
+      ];
+
+      if (rolesAdministrativos.includes(usuario.rol)) {
+        navigate("/admin/usuarios");
+      } else if (usuario.rol === "cliente") {
+        navigate("/cliente/inicio");
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
       Swal.fire({
         icon: "error",
         title: "Error de conexión",
-        text: "No se pudo conectar con el servidor (puerto 1511).",
+        text: "No se pudo conectar con el servidor (puerto 8000).",
         confirmButtonColor: "#e5a93c",
       });
     }

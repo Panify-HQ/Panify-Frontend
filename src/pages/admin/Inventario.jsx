@@ -6,7 +6,7 @@ import {
   crearProducto,
   actualizarProducto,
 } from "../../services/producto.js";
-import { obtenerNombreUsuarioActual } from "../../services/auth.js";
+import { obtenerSesionActual } from "../../services/auth.js";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Swal from "sweetalert2";
@@ -159,7 +159,7 @@ export default function Inventario() {
           </div>
           <div className="admin-info d-flex align-items-center gap-2">
             <i className="fa-solid fa-circle-user fs-4"></i>
-            <span>{obtenerNombreUsuarioActual()}</span>
+            <span>{obtenerSesionActual()?.nombreCompleto || "Administrador"}</span>
           </div>
         </header>
 

@@ -1,8 +1,8 @@
   import { Navigate, Outlet } from "react-router-dom";
-  import { obtenerUsuarioActual } from "../../services/auth.js";
+  import { obtenerSesionActual } from "../../services/auth.js";
 
   export default function ProtectedRoute({ rolesPermitidos, children }) {
-    const usuario = obtenerUsuarioActual();
+    const usuario = obtenerSesionActual();
 
     if (!usuario) {
       return <Navigate to="/ingresar" replace />;

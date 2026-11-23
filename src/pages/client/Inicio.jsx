@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { obtenerNombreUsuarioActual } from "../../services/auth.js";
+import { obtenerSesionActual } from "../../services/auth.js";
 import { formatearMoneda } from "../../utils/formatearMoneda.js";
 import { formatearFechaHora } from "../../utils/formatearFechaHora.js";
 import { useEffect, useState } from "react";
@@ -25,7 +25,7 @@ function obtenerImagenProducto(id) {
 }
 
 export default function InicioCliente() {
-  const nombreUsuario = obtenerNombreUsuarioActual();
+  const nombreUsuario = obtenerSesionActual()?.nombreCompleto || "Administrador";
 
   const [carrito, setcarrito] = useState([]);
   const [pedido, setpedido] = useState([]);

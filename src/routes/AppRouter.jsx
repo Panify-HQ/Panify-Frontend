@@ -51,7 +51,7 @@ export default function AppRouter() {
 
         <Route
           element={
-            <ProtectedRoute rolesPermitidos={["panadero", "domiciliario"]}>
+            <ProtectedRoute rolesPermitidos={["superadmin", "administrador", "panadero", "domiciliario"]}>
               <AdminLayout />
             </ProtectedRoute>
           }

@@ -1,385 +1,94 @@
-import { useEffect, useMemo, useState } from "react";
-import { obtenerPedidos, cancelarPedidoService } from "../../services/pedidos";
-import DetallePedidoModal from "../../components/client/ModalDetallePedido";
-import DataTable from "datatables.net-react";
-import DT from "datatables.net-bs5";
-import "datatables.net-bs5/css/dataTables.bootstrap5.min.css";
+import { useEffect, useState } from "react";
+import { Package, ChevronDown } from "lucide-react";
+import { obtenerMisPedidosPanel } from "../../services/panel.js";
+import { formatCOP, formatFecha } from "../../utils/formatos.js";
+import { ESTADO_TIMELINE, getTimelineStep } from "../../components/client/Timeline.jsx";
+export default function MisPedidos() {
+    const [pedidos, setPedidos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    useEffect(() => {
+        obtenerMisPedidosPanel()
+            .then(setPedidos)
+            .catch(e => console.error("Error al cargar los pedidos:", e))
+            .finally(() => setCargando(false));
+    }, []);
+    const [expanded, setExpanded] = useState(null);
+    const ESTADO_INFO = {
+        pendiente: { label: "Recibido", color: "#F9A825", bg: "rgba(249,168,37,0.12)" },
+        preparando: { label: "En preparación", color: "#1565C0", bg: "rgba(21,101,192,0.12)" },
+        listo: { label: "En preparación", color: "#1565C0", bg: "rgba(21,101,192,0.12)" },
+        en_camino: { label: "En ruta", color: "#1565C0", bg: "rgba(21,101,192,0.12)" },
+        entregado: { label: "Entregado", color: "#2E7D32", bg: "rgba(46,125,50,0.12)" },
+        cancelado: { label: "Cancelado", color: "#C62828", bg: "rgba(198,40,40,0.12)" },
+    };
+    return (<div className="max-w-3xl mx-auto px-4 py-8">
+      <h1 className="font-display text-2xl font-bold mb-6" style={{ color: "var(--pan-text)" }}>Mis pedidos</h1>
 
-export default function Pedidos() {
-  DataTable.use(DT);
+      <div className="space-y-3">
+        {pedidos.map(p => {
+            const info = ESTADO_INFO[p.estado] ?? ESTADO_INFO.pendiente;
+            const step = getTimelineStep(p.estado);
+            const open = expanded === p.id;
+            return (<div key={p.id} className="pan-card overflow-hidden">
+              <button onClick={() => setExpanded(open ? null : p.id)} className="w-full flex items-center gap-4 p-5 text-left transition-colors" onMouseEnter={e => { e.currentTarget.style.background = "var(--pan-surface-2)"; }} onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-sm" style={{ color: "var(--pan-accent)" }}>{p.id}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ color: info.color, background: info.bg }}>{info.label}</span>
+                  </div>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--pan-text-muted)" }}>{formatFecha(p.fechaCreacion)} · {p.items.length} producto{p.items.length !== 1 ? "s" : ""}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-bold" style={{ color: "var(--pan-text)" }}>{formatCOP(p.total)}</span>
+                  <ChevronDown size={16} style={{ color: "var(--pan-text-faint)", transform: open ? "rotate(180deg)" : "", transition: "transform 0.2s" }}/>
+                </div>
+              </button>
 
-  const [pedidos, setPedidos] = useState([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState(null);
+              {open && (<div className="px-5 pb-5" style={{ borderTop: "1px solid var(--pan-border)" }}>
+                  {/* Timeline */}
+                  <div className="flex items-center gap-0 py-4">
+                    {ESTADO_TIMELINE.map((t, i) => {
+                        const done = i <= step;
+                        const current = i === step;
+                        return (<div key={t.key} className="flex items-center flex-1 last:flex-none">
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all" style={{
+                                background: done ? "var(--pan-accent)" : "var(--pan-surface-2)",
+                                borderColor: done ? "var(--pan-accent)" : "var(--pan-border)",
+                                color: done ? "#fff" : "var(--pan-text-faint)",
+                                boxShadow: current ? "0 0 0 3px rgba(217,144,61,0.2)" : "none",
+                            }}>
+                              {t.icon}
+                            </div>
+                            <span className="text-[9px] font-medium text-center leading-tight w-14" style={{ color: done ? "var(--pan-accent)" : "var(--pan-text-faint)" }}>
+                              {t.label}
+                            </span>
+                          </div>
+                          {i < ESTADO_TIMELINE.length - 1 && (<div className="flex-1 h-0.5 mb-5 mx-0.5 rounded" style={{ background: i < step ? "var(--pan-accent)" : "var(--pan-border)" }}/>)}
+                        </div>);
+                    })}
+                  </div>
 
-  const [filtroEstadoActivos, setFiltroEstadoActivos] = useState("Todos");
-  const [filtroEstadoHistorial, setFiltroEstadoHistorial] = useState("Todos");
-
-  // Estado para el modal de detalle de pedido
-  const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
-
-  // --- READ: Cargar pedidos desde el servicio ---
-  useEffect(() => {
-    async function cargar() {
-      try {
-        setCargando(true);
-        setError(null);
-
-        const data = await obtenerPedidos();
-        setPedidos(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setCargando(false);
-      }
-    }
-    cargar();
-  }, []);
-
-  // --- UPDATE: Cancelar un pedido ---
-  async function handleCancelar(id) {
-    const confirmar = window.confirm(
-      "¿Seguro que quieres cancelar este pedido?"
-    );
-    if (!confirmar) return;
-
-    try {
-      const actualizado = await cancelarPedidoService(id);
-      setPedidos((prev) =>
-        prev.map((p) => (p.id === actualizado.id ? { ...p, estado: "Cancelado" } : p))
-      );
-      // Si el pedido cancelado estaba abierto en el modal, actualizamos su estado local
-      if (pedidoSeleccionado && pedidoSeleccionado.id === id) {
-        setPedidoSeleccionado((prev) => ({ ...prev, estado: "Cancelado" }));
-      }
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-
-  const activos = useMemo(
-    () =>
-      pedidos.filter(
-        (p) =>
-          (p.estado !== "Entregado" && p.estado !== "Cancelado") &&
-          (filtroEstadoActivos === "Todos" || p.estado === filtroEstadoActivos)
-      ),
-    [pedidos, filtroEstadoActivos]
-  );
-
-  const historial = useMemo(
-    () =>
-      pedidos.filter(
-        (p) =>
-          (p.estado === "Entregado" || p.estado === "Cancelado") &&
-          (filtroEstadoHistorial === "Todos" || p.estado === filtroEstadoHistorial)
-      ),
-    [pedidos, filtroEstadoHistorial]
-  );
-
-  const contar = (estado) => pedidos.filter((p) => p.estado === estado).length;
-
-  function badgeClase(estado) {
-    switch (estado) {
-      case "Pendiente":
-        return "bg-danger";
-      case "Preparación":
-        return "bg-warning text-dark";
-      case "En camino":
-        return "bg-primary";
-      case "Entregado":
-        return "bg-success";
-      case "Cancelado":
-        return "bg-secondary";
-      default:
-        return "bg-light text-dark";
-    }
-  }
-
-  function formatearProductos(productos) {
-    if (!productos || productos.length === 0) return "—";
-    return productos.map((p) => `${p.cantidad} ${p.nombre}`).join(", ");
-  }
-
-  function formatearTotal(total) {
-    if (total == null) return "—";
-    return `$${total.toLocaleString("es-CO")}`;
-  }
-
-  const columnasActivas = [
-    {
-      title: "Pedido",
-      data: null,
-      render: (_, __, pedido) => `<strong>#${pedido.id}</strong>`,
-    },
-    {
-      title: "Cliente",
-      data: null,
-      render: (_, __, pedido) => pedido.cliente || "—",
-    },
-    {
-      title: "Fecha",
-      data: null,
-      render: (_, __, pedido) => pedido.fecha || "—",
-    },
-    {
-      title: "Productos",
-      data: null,
-      render: (_, __, pedido) => formatearProductos(pedido.productos),
-    },
-    {
-      title: "Total",
-      data: null,
-      render: (_, __, pedido) => formatearTotal(pedido.total),
-    },
-    {
-      title: "Estado",
-      data: null,
-      render: (_, __, pedido) =>
-        `<span class="badge pedidos-cliente-badge ${badgeClase(pedido.estado)}">${pedido.estado}</span>`,
-    },
-    {
-      title: "",
-      data: null,
-      orderable: false,
-      searchable: false,
-      render: (_, __, pedido) => `
-        <div class="d-flex gap-2 pedidos-cliente-actions">
-          <button class="btn btn-sm btn-outline-dark pedidos-cliente-btn btn-detalle-pedido" data-id="${pedido.id}">Ver detalles</button>
-          <button class="btn btn-sm btn-danger pedidos-cliente-btn btn-cancelar-pedido" data-id="${pedido.id}">Cancelar</button>
-        </div>
-      `,
-    },
-  ];
-
-  const columnasHistorial = [
-    {
-      title: "Pedido",
-      data: null,
-      render: (_, __, pedido) => `<strong>#${pedido.id}</strong>`,
-    },
-    {
-      title: "Fecha",
-      data: null,
-      render: (_, __, pedido) => pedido.fecha || "—",
-    },
-    {
-      title: "Productos",
-      data: null,
-      render: (_, __, pedido) => formatearProductos(pedido.productos),
-    },
-    {
-      title: "Total",
-      data: null,
-      render: (_, __, pedido) => formatearTotal(pedido.total),
-    },
-    {
-      title: "Estado",
-      data: null,
-      render: (_, __, pedido) =>
-        `<span class="badge pedidos-cliente-badge ${badgeClase(pedido.estado)}">${pedido.estado}</span>`,
-    },
-    {
-      title: "",
-      data: null,
-      orderable: false,
-      searchable: false,
-      render: (_, __, pedido) => `
-        <button class="btn btn-sm btn-outline-secondary pedidos-cliente-btn btn-detalle-pedido" data-id="${pedido.id}">Ver detalles</button>
-      `,
-    },
-  ];
-
-  const crearOpcionesTabla = (estadoActual, setEstadoActual) => ({
-    responsive: true,
-    paging: true,
-    searching: true,
-    ordering: true,
-    pageLength: 5,
-    lengthChange: false,
-    info: true,
-    destroy: true,
-    initComplete: function () {
-      const api = this.api();
-      const container = api.table().container();
-      const existing = container.querySelector(".dt-custom-status-filter");
-
-      if (existing) return;
-
-      const wrapper = document.createElement("div");
-      wrapper.className = "dt-custom-status-filter mb-3 d-flex justify-content-end";
-
-      const label = document.createElement("label");
-      label.className = "d-flex align-items-center gap-2 mb-0 text-white";
-      label.innerHTML = "<span>Estado</span>";
-
-      const select = document.createElement("select");
-      select.className = "form-select pedidos-cliente-select";
-      select.innerHTML = `
-        <option value="Todos">Todos</option>
-        <option value="Pendiente">Pendiente</option>
-        <option value="Preparación">Preparación</option>
-        <option value="En camino">En camino</option>
-        <option value="Entregado">Entregado</option>
-        <option value="Cancelado">Cancelado</option>
-      `;
-      select.value = estadoActual;
-      select.onchange = (event) => setEstadoActual(event.target.value);
-
-      label.appendChild(select);
-      wrapper.appendChild(label);
-
-      const target =
-        container.querySelector(".dt-search") ||
-        container.querySelector(".dataTables_filter");
-
-      if (target) {
-        target.insertAdjacentElement("afterend", wrapper);
-      } else {
-        container.prepend(wrapper);
-      }
-    },
-    language: {
-      search: "Buscar:",
-      lengthMenu: "Mostrar _MENU_ registros",
-      info: "Mostrando _START_ a _END_ de _TOTAL_ pedidos",
-      infoEmpty: "No hay pedidos disponibles",
-      zeroRecords: "No hay pedidos disponibles",
-      paginate: {
-        first: "Primero",
-        last: "Último",
-        next: "Siguiente",
-        previous: "Anterior",
-      },
-    },
-  });
-
-  if (cargando) {
-    return (
-      <main className="container py-5 text-white text-center">
-        <p>Cargando pedidos...</p>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="container py-5 text-white text-center">
-        <p>Ocurrió un error: {error}</p>
-      </main>
-    );
-  }
-
-  return (
-    <main className="container py-5 pedidos-cliente-main">
-      {/* Encabezado */}
-      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-        <div>
-          <h2 className="fw-bold text-white">
-            <i className="fa-solid fa-box-open text-warning me-2"></i>
-            Mis Pedidos
-          </h2>
-          <p className="text-light">
-            Consulta el estado de tus pedidos y revisa tu historial de compras.
-          </p>
-        </div>
+                  {/* Items */}
+                  <div className="space-y-2 mt-1">
+                    {p.items.map((item, i) => (<div key={i} className="flex justify-between text-sm">
+                        <span style={{ color: "var(--pan-text)" }}>{item.nombre} × {item.cantidad}</span>
+                        <span style={{ color: "var(--pan-text-muted)" }}>{formatCOP(item.subtotal)}</span>
+                      </div>))}
+                    <div className="flex justify-between font-bold pt-2" style={{ borderTop: "1px solid var(--pan-border)" }}>
+                      <span style={{ color: "var(--pan-text)" }}>Total</span>
+                      <span style={{ color: "var(--pan-accent)" }}>{formatCOP(p.total)}</span>
+                    </div>
+                  </div>
+                </div>)}
+            </div>);
+        })}
       </div>
 
-      {/* Resumen */}
-      <div className="row g-3 mb-5">
-        <div className="col-md-3 col-6">
-          <div className="card shadow-sm border-0 text-center p-3 pedidos-cliente-summary-card">
-            <i className="fa-solid fa-clock text-danger fs-2 mb-2"></i>
-            <h3>{contar("Pendiente")}</h3>
-            <small className="text-muted">Pendientes</small>
-          </div>
-        </div>
-
-        <div className="col-md-3 col-6">
-          <div className="card shadow-sm border-0 text-center p-3 pedidos-cliente-summary-card">
-            <i className="fa-solid fa-bread-slice text-warning fs-2 mb-2"></i>
-            <h3>{contar("Preparación")}</h3>
-            <small className="text-muted">Preparación</small>
-          </div>
-        </div>
-
-        <div className="col-md-3 col-6">
-          <div className="card shadow-sm border-0 text-center p-3 pedidos-cliente-summary-card">
-            <i className="fa-solid fa-truck text-primary fs-2 mb-2"></i>
-            <h3>{contar("En camino")}</h3>
-            <small className="text-muted">En camino</small>
-          </div>
-        </div>
-
-        <div className="col-md-3 col-6">
-          <div className="card shadow-sm border-0 text-center p-3 pedidos-cliente-summary-card">
-            <i className="fa-solid fa-circle-check text-success fs-2 mb-2"></i>
-            <h3>{contar("Entregado")}</h3>
-            <small className="text-muted">Entregados</small>
-          </div>
-        </div>
-      </div>
-
-      {/* Pedidos Activos */}
-      <h3 className="fw-bold mb-4 text-white">
-        <i className="fa-solid fa-cart-shopping text-warning me-2"></i>
-        Pedidos Activos
-      </h3>
-
-      <div className="card shadow-sm border-0 mb-5">
-        <div className="table-responsive pedidos-cliente-table-wrapper">
-          <DataTable
-            key={`activos-${filtroEstadoActivos}-${activos.length}`}
-            id="tablaPedidosActivosCliente"
-            data={activos}
-            columns={columnasActivas}
-            className="table table-hover align-middle mb-0 pedidos-cliente-table"
-            options={{
-              ...crearOpcionesTabla(filtroEstadoActivos, setFiltroEstadoActivos),
-              createdRow: (row, pedido) => {
-                row
-                  .querySelector(".btn-detalle-pedido")
-                  ?.addEventListener("click", () => setPedidoSeleccionado(pedido));
-                row
-                  .querySelector(".btn-cancelar-pedido")
-                  ?.addEventListener("click", () => handleCancelar(pedido.id));
-              },
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Historial */}
-      <h3 className="fw-bold mb-4 text-white">
-        <i className="fa-solid fa-clock-rotate-left me-2 text-secondary"></i>
-        Historial de Pedidos
-      </h3>
-
-      <div className="card shadow-sm border-0">
-        <div className="table-responsive pedidos-cliente-table-wrapper">
-          <DataTable
-            key={`historial-${filtroEstadoHistorial}-${historial.length}`}
-            id="tablaPedidosHistorialCliente"
-            data={historial}
-            columns={columnasHistorial}
-            className="table table-hover align-middle mb-0 pedidos-cliente-table"
-            options={{
-              ...crearOpcionesTabla(filtroEstadoHistorial, setFiltroEstadoHistorial),
-              createdRow: (row, pedido) => {
-                row
-                  .querySelector(".btn-detalle-pedido")
-                  ?.addEventListener("click", () => setPedidoSeleccionado(pedido));
-              },
-            }}
-          />
-        </div>
-      </div>
-
-      {/* MODAL DETALLE DEL PEDIDO */}
-      <DetallePedidoModal
-        pedido={pedidoSeleccionado}
-        onClose={() => setPedidoSeleccionado(null)}
-      />
-    </main>
-  );
+      {!cargando && pedidos.length === 0 && (<div className="pan-card p-12 text-center">
+          <Package size={40} className="mx-auto mb-3 opacity-20" style={{ color: "var(--pan-text)" }}/>
+          <p style={{ color: "var(--pan-text-muted)" }}>Aún no tienes pedidos</p>
+        </div>)}
+    </div>);
 }
+/* ─── MIS RECIBOS ───────────────────────────────────────────────────────────── */

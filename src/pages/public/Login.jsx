@@ -27,7 +27,7 @@ export default function Login() {
                 return;
             }
             localStorage.setItem("usuario", JSON.stringify(usuario));
-            navigate(rolDePanel(usuario.rol) === "cliente" ? "/cliente/inicio" : "/admin/usuarios", { replace: true });
+            navigate(rolDePanel(usuario.rol) === "cliente" ? "/cliente/inicio" : "/admin/dashboard", { replace: true });
         }
         catch (err) {
             console.error("Error al iniciar sesión:", err);

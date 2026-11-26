@@ -10,14 +10,22 @@ const ROLES = {
   5: "cliente",
 };
 
-export const registrarUsuario = async ({ nombre, email, password }) => {
+export const registrarUsuario = async ({
+  nombre,
+  apellido = "",
+  email,
+  password,
+  telefono = "3000000000",
+  direccion = "",
+}) => {
   const nuevoUsuario = {
     nombre,
-    apellido: "",
+    apellido,
     email,
     correo: email,
     password,
-    telefono: "3000000000",
+    telefono,
+    direccion,
     estado: "Activo",
     Rol_idRol: 5,
     cliente_idCliente: 2,

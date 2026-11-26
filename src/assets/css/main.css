@@ -1,41 +1,150 @@
-/* Base */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap');
+@import 'tailwindcss';
 
-@import "bootstrap/dist/css/bootstrap.min.css";
-@import "base/index.css";
+@theme {
+  --color-oro-dark: #3E2723;
+  --color-oro-gold: #D9903D;
+  --color-oro-cream: #FFF8EE;
+  --color-oro-brown: #8D6E63;
+  --color-oro-light: #F0DFC8;
+  --color-oro-surface: #FFFFFF;
+  --color-oro-green: #2E7D32;
+  --color-oro-green-bg: #E8F5E9;
+  --color-oro-amber: #F9A825;
+  --color-oro-amber-bg: #FFF8E1;
+  --color-oro-red: #C62828;
+  --color-oro-red-bg: #FFEBEE;
+  --color-oro-blue: #1565C0;
+  --color-oro-blue-bg: #E3F2FD;
 
-/* Layout */
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Playfair Display', Georgia, serif;
+}
 
-@import "layout/navbar.css";
-@import "layout/footer.css";
-@import "layout/sidebar.css";
+/* ─── Tema claro (por defecto) ──────────────────────────────────────────────── */
+:root {
+  --pan-bg: #FFF8EE;
+  --pan-surface: #FFFFFF;
+  --pan-surface-2: #F9F3E8;
+  --pan-border: #F0DFC8;
+  --pan-border-soft: #FAF3E8;
+  --pan-text: #3E2723;
+  --pan-text-muted: #8D6E63;
+  --pan-text-faint: #B8998C;
+  --pan-accent: #D9903D;
+  --pan-accent-hover: #C47E2E;
+  --pan-sidebar-bg: #3E2723;
+  --pan-sidebar-text: #FFF8EE;
+  --pan-sidebar-muted: rgba(255,248,238,0.5);
+  --pan-sidebar-border: rgba(255,255,255,0.10);
+  --pan-sidebar-hover: rgba(255,255,255,0.08);
+  --pan-sidebar-active-bg: #D9903D;
+  --pan-sidebar-active-text: #3E2723;
+  --pan-input-bg: #FFFFFF;
+  --pan-input-border: #E8D5BC;
+  --pan-shadow: 0 1px 4px rgba(62,39,35,0.08);
+  --pan-shadow-md: 0 4px 16px rgba(62,39,35,0.12);
+}
 
-/* Components */
+/* ─── Tema oscuro ────────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --pan-bg: #1A0F0C;
+  --pan-surface: #241510;
+  --pan-surface-2: #2C1B16;
+  --pan-border: #3E2723;
+  --pan-border-soft: #2C1B16;
+  --pan-text: #F5EDE4;
+  --pan-text-muted: #C49A86;
+  --pan-text-faint: #8D6E63;
+  --pan-accent: #D9903D;
+  --pan-accent-hover: #C47E2E;
+  --pan-sidebar-bg: #120A08;
+  --pan-sidebar-text: #F5EDE4;
+  --pan-sidebar-muted: rgba(245,237,228,0.45);
+  --pan-sidebar-border: rgba(255,255,255,0.06);
+  --pan-sidebar-hover: rgba(255,255,255,0.06);
+  --pan-sidebar-active-bg: #D9903D;
+  --pan-sidebar-active-text: #1A0F0C;
+  --pan-input-bg: #2C1B16;
+  --pan-input-border: #3E2723;
+  --pan-shadow: 0 1px 4px rgba(0,0,0,0.30);
+  --pan-shadow-md: 0 4px 16px rgba(0,0,0,0.40);
+}
 
-@import "components/hero.css";
-@import "components/cards.css";
-@import "components/visit.css";
-@import "components/tables.css";
-@import "components/modalDetallePedidoAdmin.css";
-@import "components/modalRuta.css";
-@import "components/modalDetallePedido.css";
-@import "components/modal.css";
+/* ─── Accentos de color ──────────────────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --accent-trigo: #D9903D;
+  --accent-terracota: #C0654A;
+  --accent-oliva: #6B8C4A;
+  --accent-cielo: #3B82C4;
+  --accent-frambuesa: #C0406A;
+}
 
-/* Pages */
+/* ─── Tamaño de texto ────────────────────────────────────────────────────────── */
+[data-textsize="small"]  { font-size: 13px; }
+[data-textsize="normal"] { font-size: 15px; }
+[data-textsize="large"]  { font-size: 17px; }
 
-/* Public */
-@import "pages/login.css";
-@import "pages/register.css";
-@import "pages/usuarios.css";
-@import "pages/contacto.css";
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #D9903D transparent;
+}
 
-/* Admin */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D9903D; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3E2723; }
 
-@import "pages/recibos.css";
-@import "pages/pedidosAdmin.css";
+:focus-visible {
+  outline: 2px solid var(--pan-accent);
+  outline-offset: 2px;
+}
 
-/* Client */
-@import "pages/pedidosCliente.css";
+body {
+  font-family: 'Poppins', ui-sans-serif, sans-serif;
+  background-color: var(--pan-bg);
+  color: var(--pan-text);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s, color 0.2s;
+}
 
-/* Client */
-@import "pages/profile.css";
-@import "pages/inicio.css";
+/* ─── Helpers de tema ────────────────────────────────────────────────────────── */
+.pan-surface     { background: var(--pan-surface); }
+.pan-border      { border-color: var(--pan-border); }
+.pan-text        { color: var(--pan-text); }
+.pan-text-muted  { color: var(--pan-text-muted); }
+
+/* ─── Sidebar helpers ────────────────────────────────────────────────────────── */
+.sidebar-base    { background: var(--pan-sidebar-bg); color: var(--pan-sidebar-text); }
+.sidebar-item    { color: var(--pan-sidebar-muted); }
+.sidebar-item:hover { background: var(--pan-sidebar-hover); color: var(--pan-sidebar-text); }
+.sidebar-active  { background: var(--pan-sidebar-active-bg); color: var(--pan-sidebar-active-text); }
+
+/* ─── Topbar helpers ─────────────────────────────────────────────────────────── */
+.topbar-surface  { background: var(--pan-surface); border-color: var(--pan-border); }
+
+/* ─── Card helpers ───────────────────────────────────────────────────────────── */
+.pan-card { background: var(--pan-surface); border: 1px solid var(--pan-border); border-radius: 1rem; box-shadow: var(--pan-shadow); }
+
+/* ─── Input helpers ──────────────────────────────────────────────────────────── */
+.pan-input {
+  background: var(--pan-input-bg);
+  border: 1px solid var(--pan-input-border);
+  color: var(--pan-text);
+  border-radius: 0.625rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.pan-input:focus { outline: none; border-color: var(--pan-accent); }
+.pan-input::placeholder { color: var(--pan-text-faint); }
+
+/* ─── Popover animation ──────────────────────────────────────────────────────── */
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.pop-in { animation: popIn 0.15s ease; }

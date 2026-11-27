@@ -2,6 +2,37 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { iniciarSesion } from "../../services/auth.js";
 import { rolDePanel } from "../../utils/adaptadores.js";
+
+function obtenerMensajeErrorLogin(error) {
+    const status = error?.response?.status;
+
+    if (status === 422) {
+        const detalle = error.response.data?.detail;
+        const errores = Array.isArray(detalle)
+            ? detalle
+                .map((item) => {
+                    if (typeof item?.msg !== "string") return null;
+                    const ubicacion = Array.isArray(item.loc) ? item.loc : [];
+                    const campo = ubicacion.length ? ubicacion[ubicacion.length - 1] : null;
+                    return `${typeof campo === "string" ? `${campo}: ` : ""}${item.msg}`;
+                })
+                .filter(Boolean)
+            : typeof detalle === "string"
+                ? [detalle]
+                : [];
+
+        return errores.length
+            ? `El servidor rechazó los datos enviados: ${errores.join(" ")}`
+            : "El servidor rechazó los datos enviados (error 422).";
+    }
+
+    if (status) {
+        return `El servidor respondió con un error (${status}). Inténtalo de nuevo.`;
+    }
+
+    return "No se pudo conectar con el servidor. Inténtalo de nuevo en unos minutos.";
+}
+
 export default function Login() {
     const navigate = useNavigate();
     const onBack = () => navigate("/");
@@ -19,6 +50,14 @@ export default function Login() {
             setError("Por favor completa el correo y la contraseña.");
             return;
         }
+        if (!e.currentTarget.querySelector("#email").checkValidity()) {
+            setError("Ingresa un correo electrónico válido.");
+            return;
+        }
+        if (password.length > 128) {
+            setError("La contraseña no puede superar los 128 caracteres.");
+            return;
+        }
         setLoading(true);
         try {
             const usuario = await iniciarSesion(email.trim(), password);
@@ -30,8 +69,8 @@ export default function Login() {
             navigate(rolDePanel(usuario.rol) === "cliente" ? "/cliente/inicio" : "/admin/dashboard", { replace: true });
         }
         catch (err) {
-            console.error("Error al iniciar sesión:", err);
-            setError("No se pudo conectar con el servidor. Inténtalo de nuevo en unos minutos.");
+            console.error("Error al iniciar sesión (HTTP):", err?.response?.status ?? "sin respuesta");
+            setError(obtenerMensajeErrorLogin(err));
         }
         finally {
             setLoading(false);
@@ -127,7 +166,7 @@ export default function Login() {
                   Contraseña
                 </label>
                 <div className="relative">
-                  <input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} placeholder="••••••••" className={`w-full h-11 pl-4 pr-12 rounded-xl border text-sm bg-oro-cream/40 text-oro-dark placeholder:text-oro-brown/40 transition-colors focus:outline-none focus:ring-2 focus:ring-oro-gold/50 focus:border-oro-gold ${error ? "border-oro-red/60 bg-oro-red-bg/30" : "border-oro-light"}`} disabled={loading} required/>
+                  <input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} placeholder="••••••••" maxLength={128} className={`w-full h-11 pl-4 pr-12 rounded-xl border text-sm bg-oro-cream/40 text-oro-dark placeholder:text-oro-brown/40 transition-colors focus:outline-none focus:ring-2 focus:ring-oro-gold/50 focus:border-oro-gold ${error ? "border-oro-red/60 bg-oro-red-bg/30" : "border-oro-light"}`} disabled={loading} required/>
                   <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-oro-brown hover:text-oro-dark transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-oro-gold" aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} tabIndex={0}>
                     {showPassword ? (<svg viewBox="0 0 24 24" className="w-4.5 h-4.5 fill-current">
                         <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>

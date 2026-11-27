@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { CalendarDays, Download, Eye, Filter, RotateCcw } from "lucide-react";
 import { Button, Badge, Input, SearchInput, Modal, PageHeader, Select, Toast } from "../../components/common/ui.jsx";
-import { obtenerRecibosPanel } from "../../services/panel.js";
+import {
+    obtenerRecibosPanel,
+    obtenerReciboDetallePanel,
+} from "../../services/panel.js";
+import { descargarReciboPdf } from "../../services/recibos.js";
 import { formatCOP, formatFecha, formatHora } from "../../utils/formatos.js";
 const metodoPagoLabel = {
     efectivo: "Efectivo",
@@ -37,6 +41,7 @@ export default function Recibos() {
     const [fechaHasta, setFechaHasta] = useState("");
     const [filtroFechaAplicado, setFiltroFechaAplicado] = useState(null);
     const [reciboSeleccionado, setReciboSeleccionado] = useState(null);
+    const [cargandoDetalle, setCargandoDetalle] = useState(false);
     const [toast, setToast] = useState(null);
     const recibosFiltrados = recibos.filter(r => {
         const termino = busqueda.toLowerCase();
@@ -53,8 +58,38 @@ export default function Recibos() {
     });
     const totalCobrado = recibos.filter(r => r.pagado).reduce((s, r) => s + r.total, 0);
     const totalPendiente = recibos.filter(r => !r.pagado).reduce((s, r) => s + r.total, 0);
-    function simularDescarga(r) {
-        setToast({ msg: `Recibo ${r.id} descargado como PDF`, type: "success" });
+    async function abrirDetalleRecibo(recibo) {
+        setCargandoDetalle(true);
+        try {
+            setReciboSeleccionado(
+                await obtenerReciboDetallePanel(recibo.idApi),
+            );
+        }
+        catch (error) {
+            console.error("Error al cargar el detalle del recibo:", error);
+            setToast({ msg: "No se pudo cargar el recibo", type: "error" });
+        }
+        finally {
+            setCargandoDetalle(false);
+        }
+    }
+    async function descargarPdf(recibo) {
+        try {
+            const pdf = await descargarReciboPdf(recibo.idApi);
+            const url = window.URL.createObjectURL(pdf);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `recibo-${recibo.numero}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+            setToast({ msg: `Recibo ${recibo.id} descargado como PDF`, type: "success" });
+        }
+        catch (error) {
+            console.error("Error al descargar el recibo:", error);
+            setToast({ msg: "No se pudo descargar el recibo", type: "error" });
+        }
         setTimeout(() => setToast(null), 3000);
     }
     function aplicarFiltroFecha() {
@@ -206,10 +241,10 @@ export default function Recibos() {
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center justify-center gap-1.5">
-                        <Button variant="ghost" size="sm" onClick={() => setReciboSeleccionado(r)}>
+                        <Button variant="ghost" size="sm" onClick={() => abrirDetalleRecibo(r)} disabled={cargandoDetalle}>
                           <Eye size={14}/>
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => simularDescarga(r)}>
+                        <Button variant="ghost" size="sm" onClick={() => descargarPdf(r)}>
                           <Download size={14}/>
                         </Button>
                       </div>
@@ -223,7 +258,7 @@ export default function Recibos() {
       {/* Receipt detail modal */}
       <Modal isOpen={!!reciboSeleccionado} onClose={() => setReciboSeleccionado(null)} title="Vista de recibo" size="lg" footer={<div className="flex gap-2 justify-end">
             <Button variant="ghost" onClick={() => setReciboSeleccionado(null)}>Cerrar</Button>
-            <Button variant="primary" onClick={() => reciboSeleccionado && simularDescarga(reciboSeleccionado)}>
+            <Button variant="primary" onClick={() => reciboSeleccionado && descargarPdf(reciboSeleccionado)}>
               <Download size={14}/> Descargar PDF
             </Button>
           </div>}>

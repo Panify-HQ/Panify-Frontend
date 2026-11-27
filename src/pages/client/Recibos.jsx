@@ -1,23 +1,61 @@
 import { useEffect, useState } from "react";
 import { FileText, Download } from "lucide-react";
-import { obtenerMisRecibosPanel } from "../../services/panel.js";
+import {
+    obtenerMisRecibosPanel,
+    obtenerReciboDetallePanel,
+} from "../../services/panel.js";
+import { descargarReciboPdf } from "../../services/recibos.js";
 import { formatCOP, formatFecha } from "../../utils/formatos.js";
 export default function MisRecibos() {
     const [recibos, setRecibos] = useState([]);
     const [cargando, setCargando] = useState(true);
+    const [cargandoDetalle, setCargandoDetalle] = useState(false);
+    const [error, setError] = useState("");
     useEffect(() => {
         obtenerMisRecibosPanel()
             .then(setRecibos)
             .catch(e => console.error("Error al cargar los recibos:", e))
             .finally(() => setCargando(false));
     }, []);
-    const [detalle, setDetalle] = useState(null);
-    const reciboDetalle = detalle ? recibos.find(r => r.id === detalle) : null;
+    const [reciboDetalle, setReciboDetalle] = useState(null);
+    async function abrirDetalle(recibo) {
+        setError("");
+        setCargandoDetalle(true);
+        try {
+            setReciboDetalle(await obtenerReciboDetallePanel(recibo.idApi));
+        }
+        catch (e) {
+            console.error("Error al cargar el detalle del recibo:", e);
+            setError("No se pudo cargar el detalle del recibo.");
+        }
+        finally {
+            setCargandoDetalle(false);
+        }
+    }
+    async function descargarPdf(recibo) {
+        setError("");
+        try {
+            const pdf = await descargarReciboPdf(recibo.idApi);
+            const url = window.URL.createObjectURL(pdf);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `recibo-${recibo.numero}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+        }
+        catch (e) {
+            console.error("Error al descargar el recibo:", e);
+            setError("No se pudo descargar el recibo.");
+        }
+    }
     if (reciboDetalle) {
         return (<div className="max-w-2xl mx-auto px-4 py-8">
-        <button onClick={() => setDetalle(null)} className="flex items-center gap-1.5 text-sm font-medium mb-6 transition-colors" style={{ color: "var(--pan-text-muted)" }}>
+        <button onClick={() => setReciboDetalle(null)} className="flex items-center gap-1.5 text-sm font-medium mb-6 transition-colors" style={{ color: "var(--pan-text-muted)" }}>
           ← Volver a mis recibos
         </button>
+        {error && <p role="alert" className="mb-4 text-sm text-red-600">{error}</p>}
 
         <div className="pan-card p-8">
           {/* Header del recibo */}
@@ -82,7 +120,7 @@ export default function MisRecibos() {
             </div>
           </div>
 
-          <button className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors" style={{ background: "var(--pan-surface-2)", color: "var(--pan-text)", border: "1px solid var(--pan-border)" }}>
+          <button onClick={() => descargarPdf(reciboDetalle)} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors" style={{ background: "var(--pan-surface-2)", color: "var(--pan-text)", border: "1px solid var(--pan-border)" }}>
             <Download size={15}/>
             Descargar PDF
           </button>
@@ -92,6 +130,8 @@ export default function MisRecibos() {
     return (<div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="font-display text-2xl font-bold mb-6" style={{ color: "var(--pan-text)" }}>Mis recibos</h1>
 
+      {error && <p role="alert" className="mb-4 text-sm text-red-600">{error}</p>}
+      {cargandoDetalle && <p className="mb-4 text-sm" style={{ color: "var(--pan-text-muted)" }}>Cargando detalle del recibo…</p>}
       <div className="space-y-3">
         {recibos.map(r => (<div key={r.id} className="pan-card p-5 flex items-center gap-4 transition-colors" onMouseEnter={e => { e.currentTarget.style.background = "var(--pan-surface-2)"; }} onMouseLeave={e => { e.currentTarget.style.background = "var(--pan-surface)"; }}>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(217,144,61,0.12)" }}>
@@ -108,10 +148,10 @@ export default function MisRecibos() {
             </div>
             <div className="flex items-center gap-3">
               <span className="font-bold" style={{ color: "var(--pan-text)" }}>{formatCOP(r.total)}</span>
-              <button onClick={() => setDetalle(r.id)} className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors" style={{ background: "rgba(217,144,61,0.1)", color: "var(--pan-accent)" }}>
+              <button onClick={() => abrirDetalle(r)} className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors" style={{ background: "rgba(217,144,61,0.1)", color: "var(--pan-accent)" }}>
                 Ver
               </button>
-              <button className="text-xs font-medium transition-colors" style={{ color: "var(--pan-text-muted)" }}>
+              <button onClick={() => descargarPdf(r)} className="text-xs font-medium transition-colors" style={{ color: "var(--pan-text-muted)" }} aria-label={`Descargar recibo ${r.numero} en PDF`}>
                 <Download size={15}/>
               </button>
             </div>

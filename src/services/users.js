@@ -1,4 +1,4 @@
-import API from "./api";
+import API from "./api.js";
 import { obtenerSesionActual } from "./auth";
 
 export async function obtenerUsuarios() {

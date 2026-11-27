@@ -139,10 +139,15 @@ export async function cerrarSesion() {
 }
 
 export async function recuperarPassword(correo) {
-  
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ mensaje: "Enlace de recuperación enviado (simulado)." });
-    }, 800); 
+  const { data } = await API.post(`${AUTH_PATH}/forgot-password`, { correo });
+  return data;
+}
+
+export async function resetearPassword(correo, codigo, nuevaContrasena) {
+  const { data } = await API.post(`${AUTH_PATH}/reset-password`, {
+    correo,
+    codigo,
+    nueva_contrasena: nuevaContrasena,
   });
+  return data;
 }

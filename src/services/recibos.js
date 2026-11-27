@@ -1,4 +1,4 @@
-import API from "./api";
+import API from "./api.js";
 
 export async function obtenerRecibos() {
   const [recibos, pedidos, usuarios] = await Promise.all([
@@ -22,7 +22,6 @@ export async function obtenerRecibos() {
   });
 }
 
-// services/recibosService.js
 export async function obtenerDetallePedido(idPedido) {
   try {
     const [detallesRespuesta, productosRespuesta] = await Promise.all([

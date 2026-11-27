@@ -1,4 +1,4 @@
-import API from "./api";
+import API from "./api.js";
 
 function calcularEstado(stock, stockMinimo) {
   if (stock === 0) return "Agotado";

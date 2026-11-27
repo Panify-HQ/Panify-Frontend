@@ -1,7 +1,4 @@
-// Servicios que alimentan las vistas del panel (diseño Mockup_Panify).
-// Reutilizan los mismos endpoints que el resto de services/ y devuelven los
-// datos ya adaptados con utils/adaptadores.js. Toda la comunicación pasa por
-// la instancia compartida de Axios (services/api.js).
+// Solicitudes usadas por las vistas del panel y adaptación de sus respuestas.
 
 import API from "./api.js";
 import { obtenerSesionActual } from "./auth.js";

@@ -91,9 +91,13 @@ npm run dev
 
 ### Conexión con el backend
 
-La URL base de la API se configura en `src/services/api.js`.
+El frontend se ejecuta en `http://localhost:5173` y Vite reenvía las solicitudes
+de la API al backend en `http://127.0.0.1:8000`. Esto evita errores de CORS
+durante el desarrollo. Los servicios solicitan rutas como `/health`,
+`/productos` y `/pedidos`; las rutas de autenticación usan `/api/v1/auth`.
 
-> 🚧 URL y variables de entorno: *por definir* según el backend.
+En producción, configura `VITE_API_URL` con la URL pública del backend y permite
+el origen del frontend en la configuración CORS del backend.
 
 ---
 

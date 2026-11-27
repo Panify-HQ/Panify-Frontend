@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { recuperarPassword } from "../../services/auth.js";
+import {
+    recuperarPassword,
+    resetearPassword,
+} from "../../services/auth.js";
 function passwordStrength(p) {
     if (p.length === 0)
         return { score: 0, label: "", color: "", textColor: "" };
@@ -43,7 +46,7 @@ function StepEmail({ onSend }) {
         }
         catch (error) {
             console.error("Error al recuperar la contraseña:", error);
-            setErrorServidor("No se pudo enviar el enlace. Inténtalo de nuevo.");
+            setErrorServidor("No se pudo enviar el código. Inténtalo de nuevo.");
         }
         finally {
             setLoading(false);
@@ -61,7 +64,7 @@ function StepEmail({ onSend }) {
         ¿Olvidaste tu contraseña?
       </h1>
       <p className="text-sm text-oro-brown text-center leading-relaxed mb-8">
-        Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.
+        Ingresa tu correo y te enviaremos un código para restablecer tu contraseña.
       </p>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
@@ -96,10 +99,11 @@ function StepEmail({ onSend }) {
     </>);
 }
 /* ── Step 2: Confirmación de envío ───────────────────────────────────────── */
-function StepSent({ email, onResend, onEnterCode }) {
+function StepSent({ email, onEnterCode }) {
     const [resent, setResent] = useState(false);
     const [cooldown, setCooldown] = useState(0);
     const [loading, setLoading] = useState(false);
+    const [errorServidor, setErrorServidor] = useState("");
     useEffect(() => {
         if (cooldown <= 0)
             return;
@@ -108,12 +112,19 @@ function StepSent({ email, onResend, onEnterCode }) {
     }, [cooldown]);
     async function handleResend() {
         setLoading(true);
-        await new Promise((r) => setTimeout(r, 900));
-        setLoading(false);
-        setResent(true);
-        setCooldown(30);
-        onResend();
-        setTimeout(() => setResent(false), 3000);
+        setErrorServidor("");
+        try {
+            await recuperarPassword(email);
+            setResent(true);
+            setCooldown(30);
+        }
+        catch (error) {
+            console.error("Error al reenviar el código:", error);
+            setErrorServidor("No se pudo reenviar el código. Inténtalo de nuevo.");
+        }
+        finally {
+            setLoading(false);
+        }
     }
     return (<>
       {/* Envelope illustration */}
@@ -135,7 +146,7 @@ function StepSent({ email, onResend, onEnterCode }) {
         Revisa tu correo
       </h1>
       <p className="text-sm text-oro-brown text-center leading-relaxed mb-1">
-        Te enviamos un enlace de recuperación a
+        Te enviamos un código de recuperación a
       </p>
       <p className="text-sm font-semibold text-oro-dark text-center mb-7 truncate px-2">{email}</p>
 
@@ -143,8 +154,8 @@ function StepSent({ email, onResend, onEnterCode }) {
       <div className="bg-oro-cream rounded-xl border border-oro-light px-4 py-3.5 mb-6 space-y-1.5">
         {[
             "Revisa también tu carpeta de spam.",
-            "El enlace expira en 30 minutos.",
-            "Solo un enlace activo a la vez.",
+            "Ingresa el código junto con tu nueva contraseña.",
+            "Si no recibes el mensaje, revisa tu carpeta de spam.",
         ].map((tip) => (<div key={tip} className="flex items-start gap-2 text-xs text-oro-brown">
             <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-oro-gold shrink-0 mt-0.5">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
@@ -156,8 +167,10 @@ function StepSent({ email, onResend, onEnterCode }) {
       {/* Resend */}
       {resent && (<div className="flex items-center justify-center gap-1.5 text-xs text-oro-green font-medium mb-3">
           <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-          Enlace reenviado correctamente.
+          Código reenviado correctamente.
         </div>)}
+
+      {errorServidor && (<p role="alert" className="text-sm text-oro-red text-center mb-3">{errorServidor}</p>)}
 
       <button onClick={handleResend} disabled={loading || cooldown > 0} className="w-full h-11 rounded-xl border border-oro-light text-sm font-medium text-oro-brown hover:border-oro-gold hover:text-oro-dark transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-oro-gold focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed mb-3">
         {loading ? (<span className="flex items-center justify-center gap-2">
@@ -166,18 +179,18 @@ function StepSent({ email, onResend, onEnterCode }) {
               <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
             </svg>
             Reenviando…
-          </span>) : cooldown > 0 ? (`Reenviar en ${cooldown}s`) : ("Reenviar enlace")}
+          </span>) : cooldown > 0 ? (`Reenviar en ${cooldown}s`) : ("Reenviar código")}
       </button>
 
-      {/* Simulate "click link" for demo */}
-      <button onClick={onEnterCode} className="w-full h-11 rounded-xl bg-oro-gold text-white font-semibold text-sm tracking-wide transition-all hover:bg-oro-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-oro-gold focus-visible:ring-offset-2">
-        Continuar con nueva contraseña →
+      <button onClick={onEnterCode} disabled={loading} className="w-full h-11 rounded-xl bg-oro-gold text-white font-semibold text-sm tracking-wide transition-all hover:bg-oro-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-oro-gold focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed">
+        Ingresar código y nueva contraseña →
       </button>
-      <p className="text-center text-xs text-oro-brown/60 mt-2">(Demo: simula clic en el enlace)</p>
     </>);
 }
 /* ── Step 3: Nueva contraseña ────────────────────────────────────────────── */
-function StepNewPassword({ onSuccess }) {
+function StepNewPassword({ email, onSuccess }) {
+    const [codigo, setCodigo] = useState("");
+    const [touchedCode, setTouchedCode] = useState(false);
     const [password, setPassword] = useState("");
     const [confirmar, setConfirmar] = useState("");
     const [showPw, setShowPw] = useState(false);
@@ -185,21 +198,42 @@ function StepNewPassword({ onSuccess }) {
     const [touchedPw, setTouchedPw] = useState(false);
     const [touchedCf, setTouchedCf] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [errorServidor, setErrorServidor] = useState("");
     const [done, setDone] = useState(false);
     const strength = passwordStrength(password);
     const pwError = touchedPw && password.length < 8 ? "Mínimo 8 caracteres." : "";
     const cfError = touchedCf && confirmar !== password ? "Las contraseñas no coinciden." : "";
-    const isValid = password.length >= 8 && confirmar === password && password === confirmar;
+    const isValid = codigo.trim().length > 0 && password.length >= 8 && confirmar === password;
     async function handleSubmit(e) {
         e.preventDefault();
+        setTouchedCode(true);
         setTouchedPw(true);
         setTouchedCf(true);
         if (!isValid)
             return;
         setLoading(true);
-        await new Promise((r) => setTimeout(r, 1200));
-        setLoading(false);
-        setDone(true);
+        setErrorServidor("");
+        try {
+            await resetearPassword(email, codigo.trim(), password);
+            setDone(true);
+        }
+        catch (error) {
+            console.error("Error al restablecer la contraseña:", error);
+            const detail = error.response?.data?.detail;
+            const message = Array.isArray(detail)
+                ? detail[0]?.msg
+                : typeof detail === "string"
+                    ? detail
+                    : null;
+            setErrorServidor(
+                message ||
+                    error.response?.data?.mensaje ||
+                    "No se pudo restablecer la contraseña. Verifica el código e inténtalo de nuevo.",
+            );
+        }
+        finally {
+            setLoading(false);
+        }
     }
     if (done) {
         return (<div className="text-center py-4">
@@ -235,6 +269,24 @@ function StepNewPassword({ onSuccess }) {
       </p>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        {errorServidor && (<p role="alert" className="text-sm text-oro-red">{errorServidor}</p>)}
+        <div className="space-y-1.5">
+          <label htmlFor="np-code" className="block text-sm font-medium text-oro-dark">
+            Código de verificación
+          </label>
+          <input
+            id="np-code"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            value={codigo}
+            onChange={(e) => setCodigo(e.target.value)}
+            placeholder="Ingresa el código recibido"
+            disabled={loading}
+            className="w-full h-11 px-4 rounded-xl border border-oro-light text-sm bg-oro-cream/40 text-oro-dark placeholder:text-oro-brown/40 transition-colors focus:outline-none focus:ring-2 focus:ring-oro-gold/50 focus:border-oro-gold"
+          />
+          {touchedCode && !codigo.trim() && (<p className="text-xs text-oro-red">El código es obligatorio.</p>)}
+        </div>
         {/* Contraseña */}
         <div className="space-y-1.5">
           <label htmlFor="np-password" className="block text-sm font-medium text-oro-dark">
@@ -353,8 +405,8 @@ export default function Recuperacion() {
       {/* Card */}
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-oro-dark/8 border border-oro-light/60 px-8 py-10 sm:px-10">
         {step === "email" && (<StepEmail onSend={(email) => { setSentEmail(email); setStep("sent"); }}/>)}
-        {step === "sent" && (<StepSent email={sentEmail} onResend={() => { }} onEnterCode={() => setStep("new-password")}/>)}
-        {step === "new-password" && (<StepNewPassword onSuccess={onBack}/>)}
+        {step === "sent" && (<StepSent email={sentEmail} onEnterCode={() => setStep("new-password")}/>)}
+        {step === "new-password" && (<StepNewPassword email={sentEmail} onSuccess={onBack}/>)}
 
         {/* Back link — hidden on success sub-state */}
         {!(step === "new-password") && (<button onClick={step === "email" ? onBack : () => setStep("email")} className="mt-6 w-full flex items-center justify-center gap-1.5 text-sm text-oro-brown hover:text-oro-dark transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-oro-gold rounded">

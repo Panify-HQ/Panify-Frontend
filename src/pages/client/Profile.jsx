@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { obtenerPerfilUsuario, actualizarPerfilUsuario } from "../../services/users";
+import { obtenerPerfilUsuario, actualizarPerfilUsuario } from "../../services/users.js";
 
 export default function Profile() {
   const [perfil, setPerfil] = useState(null);

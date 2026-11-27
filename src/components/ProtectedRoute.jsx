@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { obtenerSesionActual } from "../../services/auth.js";
+import { obtenerSesionActual } from "../services/auth.js";
 
 export default function ProtectedRoute({ rolesPermitidos, children }) {
   const usuario = obtenerSesionActual();

@@ -1,50 +1,39 @@
 import API from "./api.js";
 
-export async function obtenerRecibos() {
-  const [recibos, pedidos, usuarios] = await Promise.all([
-    API.get("/recibos"),
-    API.get("/pedidos"),
-    API.get("/users"),
-  ]);
+const RECEIPTS_PATH = "/api/v1/receipts/";
 
-  return recibos.data.map((recibo) => {
-    const pedido = pedidos.data.find((p) => p.id == recibo.idPedido);
+export async function obtenerRecibos({
+  search = "",
+  page = 1,
+  pageSize = 20,
+} = {}) {
+  const params = { page, page_size: pageSize };
+  if (search.trim()) params.search = search.trim();
 
-    const usuario = usuarios.data.find(
-      (u) => u.cliente_idCliente == pedido?.cliente_idCliente,
-    );
-
-    const nombreCliente = usuario
-      ? `${usuario.nombre} ${usuario.apellido}`
-      : "Cliente no encontrado";
-
-    return { ...recibo, nombreCliente };
-  });
+  const { data } = await API.get(RECEIPTS_PATH, { params });
+  return data;
 }
 
-export async function obtenerDetallePedido(idPedido) {
-  try {
-    const [detallesRespuesta, productosRespuesta] = await Promise.all([
-      API.get("/detalle_pedidos", { params: { idPedido } }),
-      API.get("/productos"),
-    ]);
+export async function obtenerRecibo(idRecibo) {
+  const { data } = await API.get(`${RECEIPTS_PATH}${idRecibo}`);
+  return data;
+}
 
-    const productos = productosRespuesta.data;
+export async function descargarReciboPdf(idRecibo) {
+  const { data } = await API.get(`${RECEIPTS_PATH}${idRecibo}/pdf`, {
+    responseType: "blob",
+  });
+  return data;
+}
 
-    return detallesRespuesta.data.map((detalle) => {
-      const producto = productos.find(
-        (p) => p.idProducto === detalle.producto_idProducto,
-      );
+export async function obtenerDetallePedido(idRecibo) {
+  const recibo = await obtenerRecibo(idRecibo);
 
-      return {
-        id: detalle.id,
-        producto: producto?.nombre ?? "Producto no encontrado",
-        cantidad: detalle.cantidad,
-        precio: detalle.precioFijo,
-        subtotal: detalle.cantidad * detalle.precioFijo,
-      };
-    });
-  } catch (error) {
-    throw new Error("No se pudo obtener el detalle del recibo");
-  }
+  return (recibo.productos ?? []).map((producto, index) => ({
+    id: producto.idProducto ?? index,
+    producto: producto.nombreProducto,
+    cantidad: Number(producto.cantidad) || 0,
+    precio: Number(producto.precioUnitario) || 0,
+    subtotal: Number(producto.subtotal) || 0,
+  }));
 }

@@ -209,26 +209,52 @@ export function adaptarPedido(pedido, { clientes, usuarios, detalles, productos 
 
 /* ─── Recibos ───────────────────────────────────────────────────────────── */
 
-export function adaptarRecibo(recibo, pedidosPanel) {
+export function adaptarRecibo(recibo, pedidosPanel = []) {
+  const idPedido =
+    recibo.pedido?.idPedido ?? recibo.idPedido ?? recibo.pedido_idPedido;
   const pedido = pedidosPanel.find(
-    (p) => String(p.idApi) === String(recibo.idPedido ?? recibo.pedido_idPedido),
+    (p) => String(p.idApi) === String(idPedido),
   );
-  const items = pedido?.items ?? [];
-  const subtotal = items.reduce((suma, item) => suma + item.subtotal, 0);
-  const total = Number(recibo.totalPagar ?? recibo.total) || subtotal;
+  const productos = Array.isArray(recibo.productos) ? recibo.productos : [];
+  const items = productos.length
+    ? productos.map((producto, index) => {
+        const cantidad = Number(producto.cantidad) || 0;
+        const precioUnit = Number(producto.precioUnitario) || 0;
+        return {
+          productoId: producto.idProducto ?? index,
+          nombre: producto.nombreProducto ?? "Producto no encontrado",
+          cantidad,
+          precioUnit,
+          subtotal: Number(producto.subtotal) || cantidad * precioUnit,
+        };
+      })
+    : pedido?.items ?? [];
+  const subtotalCalculado = items.reduce(
+    (suma, item) => suma + item.subtotal,
+    0,
+  );
+  const total = Number(recibo.totalPagar ?? recibo.total) || subtotalCalculado;
+  const cliente = recibo.cliente ?? {};
+  const nombreCliente =
+    recibo.nombreCliente ||
+    [cliente.nombre, cliente.apellido].filter(Boolean).join(" ").trim() ||
+    pedido?.clienteNombre ||
+    "Cliente no encontrado";
+  const numeroRecibo = recibo.idRecibo ?? recibo.id;
 
   return {
-    id: codigoRecibo(recibo.id),
-    idApi: recibo.id,
-    pedidoId: pedido?.id ?? codigoPedido(recibo.idPedido ?? recibo.pedido_idPedido ?? 0),
-    pedidoIdApi: recibo.idPedido ?? recibo.pedido_idPedido,
-    numero: recibo.id,
-    clienteNombre: pedido?.clienteNombre ?? "Cliente no encontrado",
-    clienteTelefono: pedido?.clienteTelefono ?? "N/A",
-    clienteDireccion: pedido?.clienteDireccion ?? "Dirección no registrada",
+    id: codigoRecibo(numeroRecibo),
+    idApi: numeroRecibo,
+    pedidoId: pedido?.id ?? codigoPedido(idPedido ?? 0),
+    pedidoIdApi: idPedido,
+    numero: numeroRecibo,
+    clienteNombre: nombreCliente,
+    clienteTelefono: cliente.telefono ?? pedido?.clienteTelefono ?? "N/A",
+    clienteDireccion:
+      cliente.direccion ?? pedido?.clienteDireccion ?? "Dirección no registrada",
     items,
-    subtotal: subtotal || total,
-    descuento: Math.max(0, (subtotal || total) - total),
+    subtotal: subtotalCalculado || total,
+    descuento: Math.max(0, (subtotalCalculado || total) - total),
     total,
     metodoPago: recibo.metodoPago ?? null,
     pagado: recibo.pagado ?? true,

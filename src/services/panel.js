@@ -8,6 +8,7 @@ import {
   eliminarProducto as eliminarProductoApi,
 } from "./producto.js";
 import { actualizarEstadoPedido } from "./pedidos.js";
+import { obtenerRecibos, obtenerRecibo } from "./recibos.js";
 import {
   ESTADO_API,
   adaptarPedido,
@@ -135,12 +136,32 @@ export async function cambiarEstadoPedidoPanel(idApi, estadoClave, extra = {}) {
 /* ─── Recibos ───────────────────────────────────────────────────────────── */
 
 export async function obtenerRecibosPanel() {
-  const [recibos, base] = await Promise.all([API.get("/recibos"), cargarBasePedidos()]);
-  const pedidosPanel = base.pedidos.map((pedido) => adaptarPedido(pedido, base.contexto));
+  const recibos = [];
+  let pagina = 1;
+  let total = Number.POSITIVE_INFINITY;
 
-  return datos(recibos)
-    .map((recibo) => adaptarRecibo(recibo, pedidosPanel))
+  while (recibos.length < total) {
+    const respuesta = await obtenerRecibos({ page: pagina, pageSize: 20 });
+    if (!Array.isArray(respuesta.items)) {
+      throw new Error("La respuesta de recibos no contiene una lista de items.");
+    }
+
+    recibos.push(...respuesta.items);
+    const totalRespuesta = Number(respuesta.total);
+    total = Number.isFinite(totalRespuesta) ? totalRespuesta : recibos.length;
+
+    if (respuesta.items.length === 0) break;
+    pagina += 1;
+  }
+
+  return recibos
+    .map((recibo) => adaptarRecibo(recibo, []))
     .sort((a, b) => b.fecha - a.fecha);
+}
+
+export async function obtenerReciboDetallePanel(idRecibo) {
+  const recibo = await obtenerRecibo(idRecibo);
+  return adaptarRecibo(recibo, []);
 }
 
 export async function obtenerMisRecibosPanel() {

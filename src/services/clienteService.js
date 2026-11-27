@@ -21,9 +21,7 @@ export async function obtenerProducto(idProducto) {
   return data[0];
 }
 
-export async function obtenerReciboPedido(idPedido) {
-  const { data } = await API.get("/recibos", {
-    params: { pedido_id: idPedido },
-  });
-  return data[0];
+export async function obtenerReciboPedido(idRecibo) {
+  const { data } = await API.get(`/api/v1/receipts/${idRecibo}`);
+  return data;
 }

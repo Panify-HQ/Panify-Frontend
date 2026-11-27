@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import useSesion from "../../hooks/useSesion.js";
 import { MapPin, Phone, CheckCircle, Clock, Bike, Eye, FileText } from "lucide-react";
 import { Button, Badge, Toast, PageHeader, Modal } from "../../components/common/ui.jsx";
-import { obtenerPedidosPanel, obtenerRecibosPanel, cambiarEstadoPedidoPanel } from "../../services/panel.js";
+import {
+    obtenerPedidosPanel,
+    obtenerRecibosPanel,
+    obtenerReciboDetallePanel,
+    cambiarEstadoPedidoPanel,
+} from "../../services/panel.js";
 import { formatCOP, formatFecha, formatHora } from "../../utils/formatos.js";
 export default function DomiciliarioView() {
     const sesion = useSesion();
@@ -36,10 +41,18 @@ export default function DomiciliarioView() {
     function reciboDe(pedidoId) {
         return recibos.find(r => r.pedidoId === pedidoId);
     }
-    function verRecibo(pedidoId) {
+    async function verRecibo(pedidoId) {
         const recibo = reciboDe(pedidoId);
-        if (recibo)
-            setReciboSeleccionado(recibo);
+        if (!recibo) return;
+        try {
+            setReciboSeleccionado(
+                await obtenerReciboDetallePanel(recibo.idApi),
+            );
+        }
+        catch (error) {
+            console.error("Error al cargar el recibo:", error);
+            setToast({ msg: "No se pudo cargar el recibo", type: "error" });
+        }
     }
     return (<div className="max-w-2xl mx-auto">
       <PageHeader title="Mis Entregas" subtitle="Jhon Fredy Ríos · Ruta de hoy"/>
